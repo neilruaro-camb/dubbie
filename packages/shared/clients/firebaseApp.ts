@@ -1,8 +1,6 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getStorage } from "firebase/storage";
+import { initializeApp, type FirebaseApp } from "firebase/app";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
-// TODO: Replace the following with your app's Firebase project configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBYJcFhkeBKw9dRKfiQlyFlxET3kEBZ3gE",
   authDomain: "dubbie-studio.firebaseapp.com",
@@ -12,10 +10,22 @@ const firebaseConfig = {
   appId: "1:167219761986:web:cd12d446fad0534dee6edb",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let _app: FirebaseApp | null = null;
+let _storage: FirebaseStorage | null = null;
 
-// Initialize Firebase Storage
-const storage = getStorage(app);
+function getApp(): FirebaseApp {
+  if (!_app) {
+    _app = initializeApp(firebaseConfig);
+  }
+  return _app;
+}
 
-export { storage, app };
+function getFirebaseStorage(): FirebaseStorage {
+  if (!_storage) {
+    _storage = getStorage(getApp());
+  }
+  return _storage;
+}
+
+// Lazy getters — won't crash at import time
+export { getApp as app, getFirebaseStorage as storage };

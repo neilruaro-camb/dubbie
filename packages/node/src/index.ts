@@ -2,6 +2,7 @@ import "./sentrySetup";
 import { MediaType } from "@dubbie/db";
 import cors from "cors";
 import express from "express";
+import path from "node:path";
 import * as Sentry from "@sentry/node";
 import { exportMedia } from "./functions/exportMedia";
 import { initializeProject } from "./functions/initializeProject";
@@ -11,6 +12,9 @@ const port = process.env.PORT || 3333;
 
 app.use(express.json());
 app.use(cors());
+
+// Serve local storage files when Firebase is not configured
+app.use("/storage", express.static(path.resolve("storage")));
 
 app.post("/initializeProject", async (req, res) => {
   const { projectId } = req.body;

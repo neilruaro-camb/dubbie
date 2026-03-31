@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { storage } from "@dubbie/shared/clients/firebaseApp";
+import { storage as getFirebaseStorage } from "@dubbie/shared/clients/firebaseApp";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { toast } from "sonner";
 
@@ -12,7 +12,7 @@ export const useFileUpload = () => {
   ): Promise<string | undefined> => {
     setIsUploading(true);
     const uniqueFileName = `${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, `uploads/${uniqueFileName}`);
+    const storageRef = ref(getFirebaseStorage(), `uploads/${uniqueFileName}`);
 
     try {
       const uploadResult = await uploadBytes(storageRef, file);

@@ -18,7 +18,7 @@
     "@sentry/profiling-node": "^8.7.0",
     "@types/uuid": "^9.0.8",
     "async": "^3.2.5",
-    "axios": "^1.6.8",
+    "axios": "1.7.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

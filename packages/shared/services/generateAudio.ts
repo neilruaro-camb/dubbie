@@ -5,20 +5,26 @@ import {
   type SpeechSynthesisResult,
 } from "microsoft-cognitiveservices-speech-sdk";
 import openai from "@dubbie/shared/clients/openaiClient";
+import camb from "@dubbie/shared/clients/cambClient";
 import { type Voice } from "../voices";
 
 export async function generateAudio({
   text,
   voice,
+  language,
 }: {
   text: string;
   voice: Voice;
+  language?: string;
 }): Promise<ArrayBuffer> {
   if (voice.provider === "azure") {
     return generateAzureAudio(text, voice.name as any);
   }
   if (voice.provider === "openai") {
     return generateOpenAIAudio(text, voice.name as any); //TODO: add voice name
+  }
+  if (voice.provider === "camb") {
+    return generateCambAudio(text, voice, language);
   }
   console.warn("Unsupported provider, using default voice");
   return generateAzureAudio(text, "en-US-AndrewMultilingualNeural");
@@ -82,7 +88,55 @@ async function generateOpenAIAudio(
   return Buffer.from(await mp3.arrayBuffer());
 }
 
-/* 
+async function generateCambAudio(
+  text: string,
+  voice: Voice,
+  language?: string,
+  retryCount = 0
+): Promise<ArrayBuffer> {
+  const voiceId = voice.cambVoiceId || 147320;
+  const speechModel = voice.name.includes("Flash") ? "mars-flash" : "mars-pro";
+  const cambLanguage = language || "en-us";
+
+  try {
+    const binaryResponse = await camb.textToSpeech.tts({
+      text,
+      voice_id: voiceId,
+      language: cambLanguage as any,
+      speech_model: speechModel as any,
+      output_configuration: { format: "mp3" },
+    });
+
+    const chunks: Uint8Array[] = [];
+    const stream = binaryResponse.stream();
+    if (!stream) throw new Error("CAMB TTS returned no audio stream");
+    const reader = stream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return result.buffer;
+  } catch (error) {
+    if (retryCount < 3) {
+      console.warn(`CAMB TTS failed, retrying in ${2 ** retryCount} seconds...`);
+      await new Promise((resolve) => setTimeout(resolve, 2 ** retryCount * 1000));
+      return generateCambAudio(text, voice, language, retryCount + 1);
+    }
+    throw error;
+  }
+}
+
+/*
 The following code is commented out for now but may be used in the future to enhance the audio generation functionality. 
 
 Differences and enhancements in the commented-out code:

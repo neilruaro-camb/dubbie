@@ -1,8 +1,8 @@
 import { join } from "node:path";
-import { mixAudioWithDelays } from "@/utils/mixAudioWithDelays";
+import { mixAudioWithDelays } from "../utils/mixAudioWithDelays";
 import { MediaType, prisma } from "@dubbie/db";
 import { uploadFileToStorage } from "@dubbie/shared/services/firebaseUploads";
-import { overRideVideoAudio } from "@/utils/overRideVideoAudio";
+import { overRideVideoAudio } from "../utils/overRideVideoAudio";
 import { randomUUID } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import { extractBGM } from "@dubbie/shared/services/extractBGM";

@@ -308,6 +308,9 @@ importers:
 
   packages/shared:
     dependencies:
+      '@camb-ai/sdk':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@dubbie/db':
         specifier: workspace:*
         version: link:../db
@@ -541,6 +544,11 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@camb-ai/sdk@1.0.1:
+    resolution: {integrity: sha512-mYKBfwiTZKPJruH1MJ/Fu7lOvbshZ2l3GmBuYLWebrq9AbArFhgIoIkmx6/JXrAMP0nTQyhbw/puo55nk9M4Ow==}
+    engines: {node: '>=18.0.0'}
+    dev: false
 
   /@clerk/backend@1.4.3(react-dom@18.3.1)(react@18.3.1):
     resolution: {integrity: sha512-wj4qsZO6iNiY9vF7vLH5v1f3oLh1yCLgFa0PedLzJAIJgepZl23C1/ubrRm7vyewjQEMHZwod4816mZlHDfoqA==}

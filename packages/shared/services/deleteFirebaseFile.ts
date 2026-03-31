@@ -3,7 +3,7 @@ import { app } from "../clients/firebaseApp";
 
 export async function deleteFirebaseFile(fileUrl: string): Promise<void> {
   try {
-    const storage = getStorage(app);
+    const storage = getStorage(app());
     const fileRef = ref(storage, fileUrl);
     await deleteObject(fileRef);
   } catch (error) {

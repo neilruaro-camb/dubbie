@@ -1,12 +1,19 @@
-// import dotenv from "dotenv";
-// dotenv.config();
-
 import OpenAI from "openai";
 
-// console.log(process.env.OPEN_ROUTER_API_KEY);
-const openrouter = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPEN_ROUTER_API_KEY,
-});
+let _client: OpenAI | null = null;
 
-export default openrouter;
+function getOpenRouter(): OpenAI {
+  if (!_client) {
+    _client = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPEN_ROUTER_API_KEY || "not-configured",
+    });
+  }
+  return _client;
+}
+
+export default new Proxy({} as OpenAI, {
+  get(_, prop) {
+    return (getOpenRouter() as any)[prop];
+  },
+});

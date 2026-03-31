@@ -1,14 +1,14 @@
 import { v4 as uuidv4 } from "uuid";
 import { join } from "node:path";
 import { unlink } from "node:fs/promises";
-import { extractAudioFromVideo } from "@/utils/extractAudioFromVideo";
+import { extractAudioFromVideo } from "../../utils/extractAudioFromVideo";
 import { AcceptedLanguage, prisma, type Project, type Track } from "@dubbie/db";
 import { extractBGM } from "@dubbie/shared/services/extractBGM";
 import { uploadFileToStorage } from "@dubbie/shared/services/firebaseUploads";
 import { transcribeAudio } from "@dubbie/shared/services/transcribeAudio";
 import { addTimestampsForSentences } from "@dubbie/shared/utils/addTimestampsForSentences";
 import { updateProjectStatus } from "./updateProjectStatus";
-import { compressAudio } from "@/utils/compressAudio";
+import { compressAudio } from "../../utils/compressAudio";
 import { getFirebaseFileMetadata } from "@dubbie/shared/services/getFirebaseFileMetadata";
 import { breakdownParagraphViaLLM } from "@dubbie/shared/services/breakdownParagraphViaLLM";
 import { detectLanguageViaLLM } from "@dubbie/shared/services/detectLanguageViaLLM";

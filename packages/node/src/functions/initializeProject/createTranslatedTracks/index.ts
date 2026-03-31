@@ -7,7 +7,8 @@ import { uploadAudioArrayToStorage } from "@dubbie/shared/services/firebaseUploa
 import { generateAudio } from "@dubbie/shared/services/generateAudio";
 import { getAudioDuration } from "@dubbie/shared/utils/getAudioDuration";
 import { ALL_VOICES } from "@dubbie/shared/voices";
-import { appendToJsonFile } from "@/functions/appendToJsonFile";
+import { getCambBcp47 } from "@dubbie/shared/services/cambTranslatedTts";
+import { appendToJsonFile } from "../../appendToJsonFile";
 
 export async function createTranslatedTrack(projectId: string): Promise<string> {
   updateProjectStatus(projectId, "TRANSLATING");
@@ -201,7 +202,8 @@ async function generateAudioWithRetry(
     console.log(`Selected voice: ${voice.name}`);
   }
 
-  const audio = await generateAudio({ text, voice });
+  const cambLanguage = voice.provider === "camb" ? getCambBcp47(language) : undefined;
+  const audio = await generateAudio({ text, voice, language: cambLanguage });
   if (!audio) return;
 
   const audioUint8Array = new Uint8Array(audio);
