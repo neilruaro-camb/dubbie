@@ -41,9 +41,9 @@ export const useProjectCreation = () => {
         voiceName = voice.name;
         voiceProvider = voice.provider;
       } else {
-        toast.error("Selected voice not found. Please choose a valid voice.");
-        setLoading(false);
-        return;
+        // Assume it's a dynamically fetched CAMB voice
+        voiceName = userSelectedVoice;
+        voiceProvider = "camb";
       }
     } else {
       const defaultVoice = getDefaultVoiceForLanguage(targetLanguage);

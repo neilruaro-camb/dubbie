@@ -8,16 +8,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { HelpCircle } from "lucide-react";
-import { ALL_VOICES } from "@dubbie/shared/voices";
+import { ALL_VOICES, type Voice } from "@dubbie/shared/voices";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { useRef } from "react";
+import { useEffect, useState } from "react";
 import { AudioPlayerIcon } from "./AudioPlayerIcon";
+import { API_ENDPOINT } from "@/lib/constants";
 
 export function VoiceProfileSection({
   setSelectedVoiceName,
 }: {
   setSelectedVoiceName: (value: string) => void;
 }) {
+  const [cambVoices, setCambVoices] = useState<Voice[]>([]);
+
+  useEffect(() => {
+    async function fetchCambVoices() {
+      try {
+        const res = await fetch(`${API_ENDPOINT}/camb-voices`);
+        if (res.ok) {
+          const voices = await res.json();
+          setCambVoices(voices);
+        }
+      } catch {
+        // CAMB voices unavailable, no problem
+      }
+    }
+    fetchCambVoices();
+  }, []);
+
+  const allVoices = [...ALL_VOICES, ...cambVoices];
+
   return (
     <div className="flex w-full items-center justify-between gap-4">
       <div className="flex items-center text-sm">
@@ -36,9 +56,8 @@ export function VoiceProfileSection({
             a foreign accent, and it may also default to a cantonese accent.
             <br />
             <br />
-            Note: Voice cloning is not currently supported. If you're interested
-            in this feature, please contact us and we can add it. As it's not a
-            priority for us at the moment.
+            CAMB AI voices are fetched from your account and support
+            multilingual speech generation.
           </TooltipContent>
         </Tooltip>
       </div>
@@ -47,8 +66,32 @@ export function VoiceProfileSection({
           <SelectValue placeholder="Select a voice" />
         </SelectTrigger>
         <SelectContent className="pr-2">
+          {cambVoices.length > 0 && (
+            <SelectGroup>
+              <SelectLabel className="font-medium opacity-50">CAMB AI Voices</SelectLabel>
+              {cambVoices.map((option) => (
+                <div
+                  key={`camb-${option.cambVoiceId}`}
+                  className="flex flex-row items-center justify-start gap-2"
+                >
+                  <SelectItem
+                    value={option.name}
+                    className="flex w-full flex-row flex-nowrap items-center justify-between"
+                  >
+                    <div>{option.name}</div>
+                    <div className="opacity-50">
+                      {option.gender} - camb
+                    </div>
+                  </SelectItem>
+                  {option.exampleSoundUrl && (
+                    <AudioPlayerIcon exampleSoundUrl={option.exampleSoundUrl} />
+                  )}
+                </div>
+              ))}
+            </SelectGroup>
+          )}
           <SelectGroup>
-            <SelectLabel className="font-medium opacity-50">Voices</SelectLabel>
+            <SelectLabel className="font-medium opacity-50">Built-in Voices</SelectLabel>
             {ALL_VOICES.map((option) => (
               <div
                 key={option.name}

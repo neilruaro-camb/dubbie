@@ -7,13 +7,57 @@ import { uploadAudioArrayToStorage } from "@dubbie/shared/services/firebaseUploa
 import { generateAudio } from "@dubbie/shared/services/generateAudio";
 import { getAudioDuration } from "@dubbie/shared/utils/getAudioDuration";
 import { ALL_VOICES } from "@dubbie/shared/voices";
-import { getCambBcp47 } from "@dubbie/shared/services/cambTranslatedTts";
+import { getCambBcp47, cambTranslatedTts } from "@dubbie/shared/services/cambTranslatedTts";
 import { appendToJsonFile } from "../../appendToJsonFile";
 
 export async function createTranslatedTrack(projectId: string): Promise<string> {
   updateProjectStatus(projectId, "TRANSLATING");
   const project = await getProject(projectId);
   const originalTrack = await getOriginalTrack(projectId);
+
+  const isCambVoice = project.defaultVoiceProvider === "camb";
+
+  if (isCambVoice) {
+    // CAMB Translated TTS: translate + generate speech in one call per segment
+    const cambVoiceId = await resolveCambVoiceId(project.defaultVoiceName);
+    const originalSegments = originalTrack.segments;
+
+    await deleteExistingTrackIfExists(projectId, project.targetLanguage);
+
+    // Create segments with original text (will be replaced with translated text after TTS)
+    const placeholderSegments = originalSegments.map((segment) => ({
+      id: uuidv4(),
+      index: segment.index,
+      startTime: segment.startTime,
+      endTime: segment.endTime,
+      text: segment.text, // original text, will be spoken in target language by CAMB
+      audioUrl: null,
+      voiceName: project.defaultVoiceName,
+      voiceProvider: "camb",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      trackId: "",
+    }));
+
+    const translatedTrack = await createTrackWithSegments(
+      projectId,
+      project.targetLanguage,
+      placeholderSegments
+    );
+
+    updateProjectStatus(projectId, "AUDIO_PROCESSING");
+    await generateCambTranslatedSpeech(
+      translatedTrack,
+      originalSegments,
+      project.originalLanguage || "english",
+      project.targetLanguage,
+      cambVoiceId
+    );
+    updateProjectStatus(projectId, "COMPLETED");
+    return translatedTrack.id;
+  }
+
+  // Standard path: translate via LLM, then generate audio
   const translatedSegments = await translateSegments(
     originalTrack.segments,
     project.targetLanguage
@@ -171,6 +215,81 @@ async function generateSpeechForAllSegments(
 
   await Promise.all(queue);
   console.log("Audio generation process completed");
+}
+
+async function resolveCambVoiceId(voiceName: string): Promise<number> {
+  try {
+    const camb = (await import("@dubbie/shared/clients/cambClient")).default;
+    const voices = await camb.voiceCloning.listVoices();
+    const match = voices.find(
+      (v): v is { id: number; voice_name: string } =>
+        typeof v === "object" && v !== null && "voice_name" in v && v.voice_name === voiceName
+    );
+    if (match) return match.id;
+  } catch (error) {
+    console.warn("Could not fetch CAMB voices, using default voice ID");
+  }
+  return 147320; // fallback default
+}
+
+async function generateCambTranslatedSpeech(
+  translatedTrack: Track,
+  originalSegments: Segment[],
+  sourceLanguage: AcceptedLanguage,
+  targetLanguage: AcceptedLanguage,
+  voiceId: number
+): Promise<void> {
+  const CONCURRENCY_LIMIT = 5;
+  const REQUEST_INTERVAL = 500;
+  console.log("CAMB Translated TTS generation started");
+
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const processSegment = async (segment: Segment) => {
+    const text = segment.text;
+    if (!text) return;
+
+    const { audio } = await cambTranslatedTts({
+      text,
+      sourceLanguage,
+      targetLanguage,
+      voiceId,
+    });
+
+    const audioUint8Array = new Uint8Array(audio);
+    const url = await uploadAudioArrayToStorage(audioUint8Array, "generatedAudioClips");
+    const audioDuration = await getAudioDuration(audioUint8Array);
+    const endTime = segment.startTime + audioDuration;
+
+    // Find the corresponding translated track segment by index
+    const trackSegment = await prisma.segment.findFirst({
+      where: { trackId: translatedTrack.id, index: segment.index },
+    });
+
+    if (trackSegment) {
+      await prisma.segment.update({
+        where: { id: trackSegment.id },
+        data: { audioUrl: url, endTime },
+      });
+    }
+
+    console.log(`Generated CAMB translated audio for segment index ${segment.index}`);
+  };
+
+  const queue: Promise<void>[] = [];
+  for (const segment of originalSegments) {
+    const task = processSegment(segment);
+    queue.push(task);
+
+    if (queue.length >= CONCURRENCY_LIMIT) {
+      await Promise.race(queue);
+      queue.splice(queue.findIndex((p) => p === task), 1);
+    }
+    await delay(REQUEST_INTERVAL);
+  }
+
+  await Promise.all(queue);
+  console.log("CAMB Translated TTS generation completed");
 }
 
 async function generateAudioWithRetry(

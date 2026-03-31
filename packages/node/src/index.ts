@@ -30,6 +30,29 @@ app.post("/initializeProject", async (req, res) => {
   }
 });
 
+app.get("/camb-voices", async (req, res) => {
+  try {
+    const camb = (await import("@dubbie/shared/clients/cambClient")).default;
+    const voices = await camb.voiceCloning.listVoices();
+    const mapped = voices
+      .filter((v): v is { id: number; voice_name: string; gender?: number | null; signed_url?: string | null } =>
+        typeof v === "object" && v !== null && "id" in v
+      )
+      .map((v) => ({
+        provider: "camb" as const,
+        name: v.voice_name,
+        exampleSoundUrl: v.signed_url || null,
+        language: "multilingual" as const,
+        gender: v.gender === 2 ? "female" : "male",
+        cambVoiceId: v.id,
+      }));
+    res.json(mapped);
+  } catch (error) {
+    console.error("Error fetching CAMB voices:", error);
+    res.status(500).json({ error: "Failed to fetch CAMB voices" });
+  }
+});
+
 app.post("/exportMedia", async (req, res) => {
   const { projectId, mediaType, includeBGM } = req.body;
   if (!projectId || !mediaType) {

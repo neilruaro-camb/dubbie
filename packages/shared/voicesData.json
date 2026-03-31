@@ -381,22 +381,5 @@
       "gender": "female"
     }
   ],
-  "camb": [
-    {
-      "provider": "camb",
-      "name": "CAMB Mars Pro",
-      "exampleSoundUrl": null,
-      "language": "multilingual",
-      "gender": "male",
-      "cambVoiceId": 147320
-    },
-    {
-      "provider": "camb",
-      "name": "CAMB Mars Flash",
-      "exampleSoundUrl": null,
-      "language": "multilingual",
-      "gender": "male",
-      "cambVoiceId": 147320
-    }
-  ]
+  "camb": []
 }
